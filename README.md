@@ -3,11 +3,12 @@
 ## 개요
 rag-expense-explainer는 LangChain을 활용한 Retrieval-Augmented Generation(RAG) 프로젝트로, 카드 사용 내역을 적합한 계정과목(예: 복리후생비, 사무용품비 등)으로 분류하고 그 이유를 한국어로 설명합니다. 문서 임베딩, 검색 기반 질의응답 및 자연어 생성을 결합하여 분류를 자동화합니다.
 
+계정과목은 기업의 모든 거래를 기록하기 위해 사용하는 분류 체계로, 복리후생비, 사무용품비 등과 같이 지출의 성격에 따라 정의됩니다. 본 repository는 이러한 계정과목 분류와 분류 근거 설명 생성을 자동화하여 효율성을 높이는 프로젝트입니다.
+
 ## 주요 기능
 - **PDF 문서 처리**: PDF 파일에서 텍스트를 추출하고 벡터 데이터베이스로 변환합니다.
-- **비용 분류**: 머신러닝 모델을 사용하여 카드 사용 내역의 계정과목을 예측합니다.
+- **비용 분류**: 딥러닝 모델을 사용하여 카드 사용 내역의 계정과목을 예측합니다.
 - **설명 생성**: 계정과목 분류의 이유를 한국어로 상세히 설명합니다.
-- **사용자 맞춤 질의 지원**: 특정 카드 사용 내역이 특정 계정과목으로 분류된 이유를 질의.
 
 ## 기술 스택
 - **프로그래밍 언어**: Python
@@ -19,19 +20,6 @@ rag-expense-explainer는 LangChain을 활용한 Retrieval-Augmented Generation(R
 - **개발 환경**:
   - Jupyter Notebook: 프로토타이핑 및 분석
 
-## 설치
-### 사전 준비
-1. Python 3.8 이상 설치
-2. 의존성 설치:
-
-```bash
-pip install langchain chromadb openai pypdf
-```
-
-3. OpenAI API 키를 환경 변수로 설정:
-
-```bash
-export OPENAI_API_KEY='your-openai-api-key'
 ```
 
 ## 작동 원리
