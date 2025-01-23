@@ -65,20 +65,48 @@ export OPENAI_API_KEY='your-openai-api-key'
    - `RetrievalQAWithSourcesChain`을 사용해 관련 문서를 검색하고, 카드 사용 내역 분류 이유를 생성합니다.
 
    ```python
-   from langchain.chains import RetrievalQAWithSourcesChain
-   from langchain.chat_models import ChatOpenAI
-
-   llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=1)
-   chain = RetrievalQAWithSourcesChain.from_chain_type(
-       llm=llm,
-       chain_type="stuff",
-       retriever=retriever,
-       return_source_documents=True
-   )
-
-   query = "해당 지출이 왜 복리후생비로 분류되었는지 설명해주세요."
-   result = chain(query)
-   print(result['answer'])
+    from langchain.chat_models import ChatOpenAI
+    from langchain.chains import RetrievalQAWithSourcesChain, LLMChain
+    from langchain.prompts import PromptTemplate 
+    from langchain.prompts.chat import (
+        ChatPromptTemplate,
+        SystemMessagePromptTemplate,
+        HumanMessagePromptTemplate,
+    )
+    
+    
+    system_template="""Explain why the card usage was classified as the account subject in Korean.
+    You should consider the card usage information and make explanation relating it with the definition, characteristics, and classification of the account subject.
+    And also, include the 
+    ----------
+    {summaries}
+    ----------
+    
+    The explanation should be detailed including the rational reason for the classification of the account subject, and the explanation of the account subject classification criteria.
+    Answer kindly to a customer in Korean: {question}
+    
+    """
+    messages = [
+        SystemMessagePromptTemplate.from_template(system_template),
+        HumanMessagePromptTemplate.from_template("{question}")
+    ]
+    
+    prompt = ChatPromptTemplate.from_messages(messages)
+    
+    from langchain.chat_models import ChatOpenAI
+    from langchain.chains import RetrievalQAWithSourcesChain
+    
+    chain_type_kwargs = {"prompt": prompt}
+    
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=1)  # Modify model_name if you have access to GPT-4
+    
+    chain = RetrievalQAWithSourcesChain.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        retriever = retriever,
+        return_source_documents=True,
+        chain_type_kwargs=chain_type_kwargs
+    )
    ```
 
 4. **비용 분류 파이프라인**:
@@ -89,10 +117,10 @@ export OPENAI_API_KEY='your-openai-api-key'
      - 분류 기준 설명 (한국어)
 
 ## 예제 출력
-### 입력
+### 입력 1
 카드 사용 내역: `"종로면선생 판교파미어스몰점" 60,000원 (창현님과 저녁식사)`
 
-### 출력
+### 출력 2
 **분류 결과**:
 - 복리후생비 (99.81% 확률)
 - 접대비 (0.12% 확률)
@@ -100,53 +128,31 @@ export OPENAI_API_KEY='your-openai-api-key'
 
 **설명 (한국어)**:
 ```
-카드 사용 내역 "종로면선생 판교파미어스몰점"에서 발생한 비용은 복리후생비로 분류되었습니다. 복리후생비는 회사나 조직에서 직원의 복지를 위해 제공되는 지출로, 저녁식사 비용이 포함될 수 있습니다. 해당 내역은 복리후생비와 가장 높은 연관성을 보였습니다.
+카드 사용 내역 "종로면선생 판교파미어스몰점"에서 발생한 비용은 복리후생비로 분류되었습니다.
+복리후생비는 회사나 조직에서 직원의 복지를 위해 제공되는 지출로, 저녁식사 비용이 포함될 수 있습니다.
+해당 내역은 복리후생비와 가장 높은 연관성을 보였습니다.
 ```
 
-## 레포지토리 구조
+
+### 입력 2
+카드 사용 내역: `"이케아코리아 유한회사" 545000원 (책상 4개 구매)`
+
+### 출력 2
+**분류 결과**:
+- 사무용품비 (88.60% 확률)
+- 복리후생비 (5.10% 확률)
+- 소모품비 (4.79% 확률)
+
+**설명 (한국어)**:
 ```
-RAGCardClassifier/
-├── data/
-│   └── 계정과목해설.pdf          # 소스 문서
-├── notebooks/
-│   └── granter_classification_reason.ipynb  # 프로토타이핑 노트북
-├── src/
-│   ├── document_processing.py    # PDF 처리 및 임베딩
-│   ├── classification.py         # 분류 로직
-│   └── explain_generation.py     # 설명 생성
-├── tests/
-│   └── test_classification.py    # 분류 유닛 테스트
-└── README.md
+이케아코리아 유한회사의 카드 사용 내역 "545,000원 (책상 4개 구매)"이 사무용품비(88.60% 확률), 복리후생비(5.10% 확률), 소모품비(4.79% 확률)라는 회계과목으로 분류된 이유를 설명드리겠습니다.
+
+분류된 회계과목인 사무용품비는 사무용 제품의 구매비용에 해당합니다. 여기서 "책상 4개 구매"라는 내용을 보면, 이는 회사의 업무를 수행하는데 필요한 사무용품 구매로 해석할 수 있습니다. 따라서, 이 사용 내역은 제고나 재고로 관리되지 않고 일회성으로 사용된 것으로 판단되어 사무용품비로 분류되었습니다.
+
+또한, 복리후생비는 직원들의 복리후생 및 간접적인 재화나 서비스에 소요되는 비용을 포함합니다. 하지만 "책상 4개 구매"는 직원들의 복리후생을 위한 구매로 해석하기에는 한계가 있습니다.
+
+소모품비는 회사의 업무나 생산과정에서 소규모로 사용되거나 소모되는 물품의 구입비용을 포함합니다. "책상 4개 구매"는 1년 이상 사용할 수 있는 취득단가가 50만원 미만인 소액의 물품으로 분류된 것입니다.
+
+따라서, 이카이코리아 유한회사의 카드 사용 내역이 사무용품비로 분류된 이유는 구매한 책상이 회사의 업무에 필요한 사무용품이라고 판단되어 분류되었습니다.
 ```
-
-## 실행 방법
-1. 레포지토리 클론:
-   ```bash
-   git clone https://github.com/your-username/RAGCardClassifier.git
-   cd RAGCardClassifier
-   ```
-
-2. Jupyter Notebook 실행:
-   ```bash
-   jupyter notebook notebooks/granter_classification_reason.ipynb
-   ```
-
-3. Python 스크립트 실행:
-   ```bash
-   python src/classification.py
-   ```
-
-## 향후 개선 사항
-- **다국어 지원**: 한국어 외 영어 및 다른 언어 지원.
-- **분류 정확도 개선**: 고급 미세 조정 모델 통합.
-- **웹 인터페이스 개발**: 사용자 친화적 질의응답 웹 UI 추가.
-- **회계 소프트웨어와 통합**: 기업 환경에 맞는 자동화 분류 제공.
-
-## 라이선스
-이 프로젝트는 MIT 라이선스를 따릅니다.
-
-## 감사의 말
-- LangChain 팀의 강력한 프레임워크.
-- OpenAI의 GPT 모델 제공.
-- 피드백 및 제안을 제공해 주신 분들께 감사드립니다.
 
