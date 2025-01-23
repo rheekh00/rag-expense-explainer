@@ -20,7 +20,7 @@ rag-expense-explainer는 LangChain을 활용한 Retrieval-Augmented Generation(R
 - **개발 환경**:
   - Jupyter Notebook: 프로토타이핑 및 분석
 
-```
+
 
 ## 작동 원리
 1. **문서 로드 및 분할**:
